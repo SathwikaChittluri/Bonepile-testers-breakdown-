@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tester Repair & Inventory Dashboard — 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f2f1ed;--surface:#fff;--surface2:#f9f8f5;--border:#e0ddd4;--border2:#cac8bf;--text:#17160f;--muted:#6a6860;--accent:#1d5fa8;--accent-light:#e8f0fb;--green:#196b43;--green-light:#e6f5ed;--red:#b91c1c;--red-light:#fef2f2;--amber:#92400e;--amber-light:#fffbeb;--orange:#c45a1a;--radius:10px;}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);font-size:14px;line-height:1.5;}
+.page{max-width:1160px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.header{margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:2px solid var(--border2);}
+.header h1{font-size:24px;font-weight:700;letter-spacing:-0.5px;}
+.header p{color:var(--muted);font-size:13px;margin-top:5px;}
+.header-meta{display:flex;gap:1rem;margin-top:10px;flex-wrap:wrap;}
+.header-meta span{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 11px;}
+.tabs{display:flex;gap:4px;margin-bottom:1.75rem;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;border:1px solid transparent;border-bottom:none;transition:all .15s;margin-bottom:-1px;background:transparent;}
+.tab:hover{color:var(--text);background:var(--surface2);}
+.tab.active{background:var(--surface);color:var(--accent);border-color:var(--border);border-bottom-color:var(--surface);}
+.section{display:none;}.section.active{display:block;}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;}
+.kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;}
+.kpi-value{font-size:26px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--text);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.kpi.red .kpi-value{color:var(--red);}.kpi.green .kpi-value{color:var(--green);}.kpi.amber .kpi-value{color:var(--amber);}
+.sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.15rem 1.25rem;margin-bottom:14px;}
+.card-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1.5px solid var(--border2);white-space:nowrap;}
+td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}th.num{text-align:right;}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+.badge-red{background:var(--red-light);color:var(--red);}
+.badge-amber{background:var(--amber-light);color:var(--amber);}
+.badge-green{background:var(--green-light);color:var(--green);}
+.badge-blue{background:var(--accent-light);color:var(--accent);}
+.badge-gray{background:#f0ede8;color:#6a6860;}
+.trend-down{color:var(--red);font-size:12px;}.trend-up{color:var(--green);font-size:12px;}.trend-flat{color:var(--muted);font-size:12px;}
+.table-scroll{overflow-x:auto;}
+@media(max-width:700px){.card-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="header">
+  <h1>Tester repair &amp; inventory dashboard</h1>
+  <p>Repair log Jun 1 – Aug 19, 2026 · Inventory snapshots Jul 10 – Aug 14, 2026 · Fleet data Jul 10 – Aug 27, 2026</p>
+  <div class="header-meta">
+    <span>140 total testers</span><span>691 repair records</span><span>21 tracked parts</span><span>Last updated Aug 27, 2026</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('fleet')">🖥 Fleet status</div>
+  <div class="tab" onclick="switchTab('overview')">Overview</div>
+  <div class="tab" onclick="switchTab('parts')">Part usage</div>
+  <div class="tab" onclick="switchTab('forecast')">Forecast &amp; gap</div>
+  <div class="tab" onclick="switchTab('breakdown')">By model / shift</div>
+  <div class="tab" onclick="switchTab('bonepile')">Bonepile</div>
+</div>
+
+<!-- ===== FLEET STATUS ===== -->
+<div id="tab-fleet" class="section active">
+  <div class="kpi-row">
+    <div class="kpi green"><div class="kpi-label">In use (good)</div><div class="kpi-value">76</div><div class="kpi-sub">54% of fleet · Aug 27</div></div>
+    <div class="kpi red"><div class="kpi-label">Bad / down</div><div class="kpi-value">64</div><div class="kpi-sub">46% of fleet · Aug 27</div></div>
+    <div class="kpi red"><div class="kpi-label">Bonepile</div><div class="kpi-value">17</div><div class="kpi-sub">12% of fleet</div></div>
+    <div class="kpi amber"><div class="kpi-label">Wait for parts</div><div class="kpi-value">14</div><div class="kpi-sub">10% of fleet</div></div>
+    <div class="kpi amber"><div class="kpi-label">Needs verification</div><div class="kpi-value">15</div><div class="kpi-sub">11% of fleet</div></div>
+    <div class="kpi amber"><div class="kpi-label">Wait for repair</div><div class="kpi-value">10</div><div class="kpi-sub">7% of fleet</div></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">Fleet good vs. bad trend (Jul 10 – Aug 27, 2026)</div>
+    <div class="legend">
+      <div class="legend-item"><div class="leg-sq" style="background:#1baf7a"></div>Good / In Use</div>
+      <div class="legend-item"><div class="leg-sq" style="background:#e24b4a"></div>Bad / Down</div>
+    </div>
+    <div style="position:relative;height:200px;"><canvas id="fleetTrendChart"></canvas></div>
+  </div>
+
+  <div class="card-row">
+    <div class="card">
+      <div class="sec-label">Bad tester breakdown by status (Aug 27)</div>
+      <div style="position:relative;height:220px;"><canvas id="badStatusChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Bad testers by model (Aug 27)</div>
+      <div style="position:relative;height:220px;"><canvas id="badModelChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">Bad tester unit detail — 64 units (Aug 27, 2026)</div>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Serial #</th><th>Model</th><th>Status</th><th>Remark</th></tr></thead>
+      <tbody>
+        <tr><td>1660224103033</td><td>UT 2.0 6u</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">BMC chip replaced and flashed, Currently Testing</td></tr>
+        <tr><td>45023200007</td><td>UT 2.0 6u</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Overtemp issue, replace chassis with 6U EXT</td></tr>
+        <tr><td>1942026106007</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Needs BMC update</td></tr>
+        <tr><td>1665123103089</td><td>UT 2.0 6u</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Switchboard replaced, Currently Testing</td></tr>
+        <tr><td>1942026106029</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Power Drops in Current Test Room</td></tr>
+        <tr><td>1942026106023</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Power Drops in Current Test Room</td></tr>
+        <tr><td>1952226106033</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Power Drops in Current Test Room</td></tr>
+        <tr><td>1952226106064</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Power Drops in Current Test Room</td></tr>
+        <tr><td>1942026106020</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Power Drops in Current Test Room</td></tr>
+        <tr><td>1662424103087</td><td>UT 2.0 6u</td><td><span class="badge badge-amber">Wait for Repair</span></td><td style="color:var(--muted);font-size:12px;">Needs Chassis, Bad CPU Tray</td></tr>
+        <tr><td>1660925106086</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660324103070</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1662424103083</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660925106079</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660224103128</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660925106099</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660524103050</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660925106066</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1664323103002</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660925106098</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1664323103007</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660925106069</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660925106101</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade, missing DIMMs</td></tr>
+        <tr><td>1660424103060</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">CPU Tray Issue, maybe M.2</td></tr>
+        <tr><td>1664723103004</td><td>UT 2.0 6u</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">—</td></tr>
+        <tr><td>CPU:1664423101023</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Needs Chassis, Switchboard</td></tr>
+        <tr><td>CPU:1661723101019</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-red">Bonepile</span></td><td style="color:var(--muted);font-size:12px;">Needs Chassis, Bad CPU Tray</td></tr>
+        <tr><td>1942026106017</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">DIMMs not Detecting, Switchboard Links Missing</td></tr>
+        <tr><td>1942026106025</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">DIMMs not Detecting, BMC issue</td></tr>
+        <tr><td>1942026106012</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">BMC Issue</td></tr>
+        <tr><td>1942026106026</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Upgrade PSU</td></tr>
+        <tr><td>1942026106018</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Upgrade PSU</td></tr>
+        <tr><td>1942026106006</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Upgrade PSU</td></tr>
+        <tr><td>1660925106078</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Upgrade PSU</td></tr>
+        <tr><td>1952226106053</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Needs PSU</td></tr>
+        <tr><td>1952226106038</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Needs PSU</td></tr>
+        <tr><td>1952226106058</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Needs PSU</td></tr>
+        <tr><td>1952226106027</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Needs PSU</td></tr>
+        <tr><td>1660324103056</td><td>UT 2.0 6u</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Space</td></tr>
+        <tr><td>1664623103090</td><td>UT 2.0 6u</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Space</td></tr>
+        <tr><td>1664223103075</td><td>UT 2.0 6u</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Space</td></tr>
+        <tr><td>1662424103071</td><td>UT 2.0 6u</td><td><span class="badge badge-blue">Needs Verification</span></td><td style="color:var(--muted);font-size:12px;">Waiting for Space</td></tr>
+        <tr><td>1942026106009</td><td>UT 2.0 6u EXT</td><td><span class="badge badge-gray">Wait for Parts</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, rails, EXT upgrade</td></tr>
+        <tr><td>No SN</td><td>UT 2.0 6u</td><td><span class="badge badge-gray">Wait for Parts</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, rails, EXT upgrade</td></tr>
+        <tr><td>1665123103068</td><td>UT 2.0 6u</td><td><span class="badge badge-gray">Wait for Parts</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade</td></tr>
+        <tr><td>1660324103063</td><td>UT 2.0 6u</td><td><span class="badge badge-gray">Wait for Parts</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade</td></tr>
+        <tr><td>CPU and PSU 1–8</td><td>UT 2.0 6u</td><td><span class="badge badge-gray">Needs Build</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, rails, EXT upgrade (8 units)</td></tr>
+        <tr><td>CPU and PSU 9–18</td><td>UT 2.0 6u</td><td><span class="badge badge-gray">Wait for Parts</span></td><td style="color:var(--muted);font-size:12px;">Chassis needs SaverBoard Tray, PSU rework, EXT upgrade (10 units)</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OVERVIEW ===== -->
+<div id="tab-overview" class="section">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Total repairs</div><div class="kpi-value">691</div><div class="kpi-sub">Jun 1 – Aug 19</div></div>
+    <div class="kpi green"><div class="kpi-label">Completed</div><div class="kpi-value">484</div><div class="kpi-sub">70% of total</div></div>
+    <div class="kpi amber"><div class="kpi-label">In progress</div><div class="kpi-value">19</div><div class="kpi-sub">2.7% of total</div></div>
+    <div class="kpi red"><div class="kpi-label">Bonepile / hold</div><div class="kpi-value">12</div><div class="kpi-sub">Blocked units</div></div>
+    <div class="kpi"><div class="kpi-label">Physical damage</div><div class="kpi-value">270</div><div class="kpi-sub">Of classified records</div></div>
+    <div class="kpi"><div class="kpi-label">Functional fail</div><div class="kpi-value">52</div><div class="kpi-sub">Of classified records</div></div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Weekly repair volume</div>
+    <div style="position:relative;height:190px;"><canvas id="weekChart"></canvas></div>
+  </div>
+  <div class="card-row">
+    <div class="card">
+      <div class="sec-label">Repairs by tester model</div>
+      <div style="position:relative;height:200px;"><canvas id="modelChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Physical damage vs. functional fail</div>
+      <div style="position:relative;height:200px;"><canvas id="damageChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PARTS ===== -->
+<div id="tab-parts" class="section">
+  <div class="kpi-row">
+    <div class="kpi red"><div class="kpi-label">#1 part consumed</div><div class="kpi-value" style="font-size:18px;">Saver Board</div><div class="kpi-sub">155 replacements</div></div>
+    <div class="kpi"><div class="kpi-label">Avg weekly usage</div><div class="kpi-value">13.3</div><div class="kpi-sub">Saver Boards / week</div></div>
+    <div class="kpi amber"><div class="kpi-label">MCIO Cable stock</div><div class="kpi-value">0</div><div class="kpi-sub">Depleted Jul 17</div></div>
+    <div class="kpi amber"><div class="kpi-label">Rails L/R stock</div><div class="kpi-value">2+2</div><div class="kpi-sub">Near depletion</div></div>
+  </div>
+  <div class="card-row">
+    <div class="card">
+      <div class="sec-label">All-time part consumption</div>
+      <div style="position:relative;height:300px;"><canvas id="partsAllChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Monthly consumption trend — top 5 parts</div>
+      <div class="legend">
+        <div class="legend-item"><div class="leg-sq" style="background:#2a78d6"></div>Saver Board</div>
+        <div class="legend-item"><div class="leg-sq" style="background:#eb6834"></div>CPU Tray</div>
+        <div class="legend-item"><div class="leg-sq" style="background:#1baf7a"></div>PSU</div>
+        <div class="legend-item"><div class="leg-sq" style="background:#eda100"></div>Chassis</div>
+        <div class="legend-item"><div class="leg-sq" style="background:#e87ba4"></div>Switchboard</div>
+      </div>
+      <div style="position:relative;height:270px;"><canvas id="monthlyTrendChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Inventory drawdown — tracked parts (Jul 10 → Aug 14)</div>
+    <div style="position:relative;height:220px;"><canvas id="inventoryTrendChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Current stock levels (Aug 14, 2026)</div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Part</th><th class="num">Stock</th><th>Trend</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Saver Board</td><td class="num">109</td><td><span class="trend-up">↑ restocked (47→135→109)</span></td><td><span class="badge badge-green">Adequate</span></td></tr>
+        <tr><td>Switchboard</td><td class="num">41</td><td><span class="trend-up">↑ restocked (0→48→41)</span></td><td><span class="badge badge-green">Adequate</span></td></tr>
+        <tr><td>PSU 3000W DELTA</td><td class="num">64</td><td><span class="trend-down">↓ slight decline</span></td><td><span class="badge badge-green">Adequate</span></td></tr>
+        <tr><td>CPU Tray</td><td class="num">21</td><td><span class="trend-flat">— stable</span></td><td><span class="badge badge-amber">Monitor</span></td></tr>
+        <tr><td>Vulcan Sled</td><td class="num">45</td><td><span class="trend-down">↓ from 57</span></td><td><span class="badge badge-green">Adequate</span></td></tr>
+        <tr><td>UT2.0 PDB Board</td><td class="num">41</td><td><span class="trend-flat">— new in Aug</span></td><td><span class="badge badge-green">Adequate</span></td></tr>
+        <tr><td>UT2.0 Luna Respin Board</td><td class="num">27</td><td><span class="trend-up">↑ restocked Jul 31</span></td><td><span class="badge badge-green">Adequate</span></td></tr>
+        <tr><td>Latches L</td><td class="num">10</td><td><span class="trend-flat">— stable</span></td><td><span class="badge badge-amber">Monitor</span></td></tr>
+        <tr><td>Latches R</td><td class="num">10</td><td><span class="trend-flat">— stable</span></td><td><span class="badge badge-amber">Monitor</span></td></tr>
+        <tr><td>SlimSas Cable</td><td class="num">6</td><td><span class="trend-down">↓ from 8</span></td><td><span class="badge badge-amber">Monitor</span></td></tr>
+        <tr><td>Umbriel B200 Sled</td><td class="num">4</td><td><span class="trend-down">↓ from 17</span></td><td><span class="badge badge-amber">Low stock</span></td></tr>
+        <tr><td>Rails R</td><td class="num">2</td><td><span class="trend-down">↓ from 14</span></td><td><span class="badge badge-red">Critical</span></td></tr>
+        <tr><td>Rails L</td><td class="num">2</td><td><span class="trend-down">↓ from 13</span></td><td><span class="badge badge-red">Critical</span></td></tr>
+        <tr><td>Fan</td><td class="num">0</td><td><span class="trend-flat">— depleted since Jul 10</span></td><td><span class="badge badge-red">Out of stock</span></td></tr>
+        <tr><td>MCIO Cable</td><td class="num">0</td><td><span class="trend-down">↓ depleted Jul 17</span></td><td><span class="badge badge-red">Out of stock</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ===== FORECAST ===== -->
+<div id="tab-forecast" class="section">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Saver Board 30d</div><div class="kpi-value">57</div><div class="kpi-sub">Stock: 109 ✓</div></div>
+    <div class="kpi amber"><div class="kpi-label">CPU Tray 30d</div><div class="kpi-value">23</div><div class="kpi-sub">Stock: 21 ⚠</div></div>
+    <div class="kpi red"><div class="kpi-label">Rails 30d demand</div><div class="kpi-value">10</div><div class="kpi-sub">Stock: 4 total ✗</div></div>
+    <div class="kpi red"><div class="kpi-label">Fans 30d demand</div><div class="kpi-value">3</div><div class="kpi-sub">Stock: 0 ✗</div></div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Forecasted demand vs. current stock — 30 / 60 / 90 days</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Based on average weekly consumption from repair log (Jun 1–Aug 19). Assumes steady-state demand.</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Part</th><th class="num">Stock</th><th class="num">Wkly rate</th><th class="num">30d</th><th class="num">60d</th><th class="num">90d</th><th>30d gap</th><th>90d gap</th></tr></thead>
+      <tbody>
+        <tr><td>Saver Board</td><td class="num">109</td><td class="num">13.3</td><td class="num">57</td><td class="num">114</td><td class="num">172</td><td><span class="badge badge-green">+52 surplus</span></td><td><span class="badge badge-red">−63 gap</span></td></tr>
+        <tr><td>CPU Tray</td><td class="num">21</td><td class="num">5.4</td><td class="num">23</td><td class="num">46</td><td class="num">70</td><td><span class="badge badge-red">−2 gap</span></td><td><span class="badge badge-red">−49 gap</span></td></tr>
+        <tr><td>PSU</td><td class="num">64</td><td class="num">5.0</td><td class="num">21</td><td class="num">43</td><td class="num">64</td><td><span class="badge badge-green">+43 surplus</span></td><td><span class="badge badge-green">0 breakeven</span></td></tr>
+        <tr><td>Switchboard</td><td class="num">41</td><td class="num">2.5</td><td class="num">11</td><td class="num">21</td><td class="num">32</td><td><span class="badge badge-green">+30 surplus</span></td><td><span class="badge badge-green">+9 surplus</span></td></tr>
+        <tr><td>Rails (L+R)</td><td class="num">4</td><td class="num">2.4</td><td class="num">10</td><td class="num">21</td><td class="num">31</td><td><span class="badge badge-red">−6 gap</span></td><td><span class="badge badge-red">−27 gap</span></td></tr>
+        <tr><td>MCIO Cables</td><td class="num">0</td><td class="num">1.0</td><td class="num">4</td><td class="num">9</td><td class="num">13</td><td><span class="badge badge-red">−4 gap</span></td><td><span class="badge badge-red">−13 gap</span></td></tr>
+        <tr><td>Fans</td><td class="num">0</td><td class="num">0.8</td><td class="num">3</td><td class="num">6</td><td class="num">10</td><td><span class="badge badge-red">−3 gap</span></td><td><span class="badge badge-red">−10 gap</span></td></tr>
+        <tr><td>Latches (L+R)</td><td class="num">20</td><td class="num">0.4</td><td class="num">2</td><td class="num">4</td><td class="num">6</td><td><span class="badge badge-green">+18 surplus</span></td><td><span class="badge badge-green">+14 surplus</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card-row">
+    <div class="card">
+      <div class="sec-label">Forecasted demand — 30/60/90 days</div>
+      <div class="legend">
+        <div class="legend-item"><div class="leg-sq" style="background:#2a78d6"></div>30d</div>
+        <div class="legend-item"><div class="leg-sq" style="background:#1baf7a"></div>60d</div>
+        <div class="legend-item"><div class="leg-sq" style="background:#eb6834"></div>90d</div>
+      </div>
+      <div style="position:relative;height:280px;"><canvas id="forecastChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Stock vs. 30-day demand</div>
+      <div style="position:relative;height:310px;"><canvas id="gapChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BREAKDOWN ===== -->
+<div id="tab-breakdown" class="section">
+  <div class="card-row">
+    <div class="card">
+      <div class="sec-label">Repairs by shift</div>
+      <div style="position:relative;height:180px;"><canvas id="shiftChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Top parts by shift</div>
+      <div style="position:relative;height:210px;"><canvas id="shiftPartsChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Repairs by model and shift</div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Model</th><th class="num">1st shift</th><th class="num">2nd shift</th><th class="num">3rd shift</th><th class="num">Cross</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        <tr><td>UT2.0 6U EXT</td><td class="num">128</td><td class="num">8</td><td class="num">12</td><td class="num">8</td><td class="num"><strong>222</strong></td></tr>
+        <tr><td>UT2.0 6U</td><td class="num">93</td><td class="num">4</td><td class="num">2</td><td class="num">0</td><td class="num"><strong>203</strong></td></tr>
+        <tr><td>UT2.0 4U EXT</td><td class="num">44</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num"><strong>50</strong></td></tr>
+        <tr><td>Other</td><td class="num">30</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num"><strong>22</strong></td></tr>
+        <tr style="font-weight:600;background:var(--surface2)"><td>Total</td><td class="num">295</td><td class="num">12</td><td class="num">15</td><td class="num">9</td><td class="num"><strong>513</strong></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card-row">
+    <div class="card">
+      <div class="sec-label">Top parts — UT2.0 6U EXT</div>
+      <div style="position:relative;height:200px;"><canvas id="extModelChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Top parts — UT2.0 6U</div>
+      <div style="position:relative;height:200px;"><canvas id="sixuModelChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BONEPILE ===== -->
+<div id="tab-bonepile" class="section">
+  <div class="kpi-row">
+    <div class="kpi red"><div class="kpi-label">Units on hold</div><div class="kpi-value">12</div><div class="kpi-sub">Repair log bonepile</div></div>
+    <div class="kpi amber"><div class="kpi-label">Awaiting parts</div><div class="kpi-value">8</div><div class="kpi-sub">Latches &amp; rails</div></div>
+    <div class="kpi red"><div class="kpi-label">Functional failures</div><div class="kpi-value">4</div><div class="kpi-sub">Switchboard / DIMMs</div></div>
+    <div class="kpi"><div class="kpi-label">Locations affected</div><div class="kpi-value">4</div><div class="kpi-sub">15A/B/C/D, 33D, 46A</div></div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Bonepile unit detail</div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Location</th><th>Model</th><th>Issue</th><th>Type</th><th>Blocking part</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>33D</td><td>UT2.0 6U EXT</td><td>Under investigation</td><td>—</td><td>Unknown</td><td><span class="badge badge-red">Hold</span></td></tr>
+        <tr><td>33D</td><td>UT2.0 6U EXT</td><td>Under investigation</td><td>—</td><td>Unknown</td><td><span class="badge badge-red">Hold</span></td></tr>
+        <tr><td>33D</td><td>UT2.0 6U EXT</td><td>Potential switchboard update needed</td><td>Functional fail</td><td>Switchboard</td><td><span class="badge badge-red">Hold</span></td></tr>
+        <tr><td>46A</td><td>UT2.0 4U EXT</td><td>Chips locked, bad DIMMs — no boot</td><td>Functional fail</td><td>DIMMs / CPU</td><td><span class="badge badge-red">Hold</span></td></tr>
+        <tr><td>15A</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15A</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15B</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15B</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15C</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15C</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15D</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+        <tr><td>15D</td><td>UT2.0 6U</td><td>Wear and tear — new latches &amp; rails needed</td><td>Physical damage</td><td>Rails + Latches</td><td><span class="badge badge-amber">Awaiting parts</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="sec-label">⚠ Parts required to clear the bonepile</div>
+    <table>
+      <thead><tr><th>Part needed</th><th class="num">Need</th><th class="num">Stock</th><th>Gap</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>Rails L</td><td class="num">8</td><td class="num">2</td><td><span class="badge badge-red">−6 shortage</span></td><td>Order immediately</td></tr>
+        <tr><td>Rails R</td><td class="num">8</td><td class="num">2</td><td><span class="badge badge-red">−6 shortage</span></td><td>Order immediately</td></tr>
+        <tr><td>Latches L</td><td class="num">8</td><td class="num">10</td><td><span class="badge badge-green">+2 surplus</span></td><td>Sufficient — will deplete stock</td></tr>
+        <tr><td>Latches R</td><td class="num">8</td><td class="num">10</td><td><span class="badge badge-green">+2 surplus</span></td><td>Sufficient — will deplete stock</td></tr>
+        <tr><td>Switchboard</td><td class="num">1</td><td class="num">41</td><td><span class="badge badge-green">Surplus</span></td><td>Available</td></tr>
+        <tr><td>DIMMs / CPU Tray</td><td class="num">1 set</td><td class="num">21</td><td><span class="badge badge-green">Surplus</span></td><td>Available — confirm compatibility</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- end .page -->
+<script>
+function switchTab(id){
+  const ids=['fleet','overview','parts','forecast','breakdown','bonepile'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ids[i]===id));
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='tab-'+id));
+}
+const gc='#e0ddd4',tc='#6a6860';
+const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}};
+
+// Fleet trend
+new Chart(document.getElementById('fleetTrendChart'),{type:'line',data:{
+  labels:['Jul 10','Jul 13','Jul 14','Jul 15','Jul 16','Jul 17','Jul 20','Jul 21','Jul 22','Jul 24','Jul 27','Jul 28','Jul 29','Jul 30','Jul 31','Aug 3','Aug 4','Aug 5','Aug 6','Aug 7','Aug 11','Aug 12','Aug 13','Aug 14','Aug 17','Aug 18','Aug 20','Aug 21','Aug 24','Aug 25','Aug 26','Aug 27'],
+  datasets:[
+    {label:'Good',data:[56,59,65,61,64,68,66,68,68,69,75,74,71,67,70,65,68,65,68,69,69,70,71,75,73,75,75,71,72,75,76,76],borderColor:'#1baf7a',backgroundColor:'rgba(27,175,122,0.07)',borderWidth:2,pointRadius:3,fill:true,tension:0.3},
+    {label:'Bad',data:[84,81,75,79,76,72,74,72,72,71,65,66,69,73,70,75,72,75,72,71,71,70,69,65,67,65,65,69,68,65,64,64],borderColor:'#e24b4a',backgroundColor:'rgba(226,75,74,0.07)',borderWidth:2,pointRadius:3,fill:true,tension:0.3}
+  ]},options:{...base,plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:45,autoSkip:true},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc},min:40,max:110}}}});
+
+// Bad status breakdown
+new Chart(document.getElementById('badStatusChart'),{type:'bar',data:{
+  labels:['Bonepile','Needs Verif.','Wait Parts','Wait Repair','Needs Build'],
+  datasets:[{data:[17,15,14,10,8],backgroundColor:['#e24b4a','#2a78d6','#888780','#eb6834','#eda100'],borderRadius:4,borderSkipped:'bottom'}]
+},options:{...base,scales:{x:{ticks:{color:tc,font:{size:10},maxRotation:20},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+// Bad by model
+new Chart(document.getElementById('badModelChart'),{type:'bar',data:{
+  labels:['6u EXT','6u','(no 4u)'],
+  datasets:[
+    {label:'Bonepile',data:[10,7,0],backgroundColor:'#e24b4a',borderRadius:3,borderSkipped:'bottom'},
+    {label:'Needs Verif.',data:[11,4,0],backgroundColor:'#2a78d6',borderRadius:3,borderSkipped:'bottom'},
+    {label:'Wait Parts',data:[1,13,0],backgroundColor:'#888780',borderRadius:3,borderSkipped:'bottom'},
+    {label:'Wait Repair',data:[6,4,0],backgroundColor:'#eb6834',borderRadius:3,borderSkipped:'bottom'},
+    {label:'Needs Build',data:[0,8,0],backgroundColor:'#eda100',borderRadius:3,borderSkipped:'bottom'}
+  ]
+},options:{...base,plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+// Weekly repair volume
+new Chart(document.getElementById('weekChart'),{type:'line',data:{labels:['Jun 1','Jun 8','Jun 15','Jun 22','Jun 29','Jul 6','Jul 13','Jul 20','Jul 27','Aug 3','Aug 10','Aug 17','Aug 24'],datasets:[{data:[41,39,30,48,41,34,53,20,47,44,48,39,35],borderColor:'#2a78d6',backgroundColor:'rgba(42,120,214,0.07)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#2a78d6',fill:true,tension:0.35}]},options:{...base,scales:{x:{ticks:{color:tc,font:{size:11},maxRotation:35,autoSkip:false},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc},min:0}}}});
+
+new Chart(document.getElementById('modelChart'),{type:'bar',data:{labels:['UT2.0 6U EXT','UT2.0 6U','UT2.0 4U EXT','Other'],datasets:[{data:[222,203,50,16],backgroundColor:['#2a78d6','#eb6834','#1baf7a','#888780'],borderRadius:4,borderSkipped:'bottom'}]},options:{...base,scales:{x:{ticks:{color:tc,font:{size:10},maxRotation:0},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('damageChart'),{type:'bar',data:{labels:['Physical','Phys+Func','Functional'],datasets:[{data:[231,34,52],backgroundColor:['#eb6834','#eda100','#2a78d6'],borderRadius:4,borderSkipped:'bottom'}]},options:{...base,scales:{x:{ticks:{color:tc,font:{size:11},maxRotation:0},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('partsAllChart'),{type:'bar',data:{labels:['Saver Board','CPU Tray','PSU','Chassis','SB Jig','Switchboard','Rails','Firmware','MCIO Cables','rPDU','Fans','BMC Ver.'],datasets:[{data:[155,63,58,37,34,29,28,26,12,12,9,7],backgroundColor:'#2a78d6',borderRadius:4,borderSkipped:'left'}]},options:{...base,indexAxis:'y',scales:{x:{ticks:{color:tc,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false}}}}});
+
+new Chart(document.getElementById('monthlyTrendChart'),{type:'line',data:{labels:['June','July','August'],datasets:[{label:'Saver Board',data:[59,37,59],borderColor:'#2a78d6',backgroundColor:'transparent',borderWidth:2,pointRadius:5,tension:0.3},{label:'CPU Tray',data:[18,32,13],borderColor:'#eb6834',backgroundColor:'transparent',borderWidth:2,pointRadius:5,tension:0.3},{label:'PSU',data:[37,7,14],borderColor:'#1baf7a',backgroundColor:'transparent',borderWidth:2,pointRadius:5,tension:0.3},{label:'Chassis',data:[13,18,6],borderColor:'#eda100',backgroundColor:'transparent',borderWidth:2,pointRadius:5,tension:0.3},{label:'Switchboard',data:[4,20,5],borderColor:'#e87ba4',backgroundColor:'transparent',borderWidth:2,pointRadius:5,tension:0.3}]},options:{...base,plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('inventoryTrendChart'),{type:'line',data:{labels:['Jul 10','Jul 17','Jul 24','Jul 31','Aug 7','Aug 14'],datasets:[{label:'Saver Board',data:[100,92,64,47,135,109],borderColor:'#2a78d6',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.2},{label:'Switchboard',data:[9,18,0,0,48,41],borderColor:'#e87ba4',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.2},{label:'Rails R',data:[14,11,9,9,2,2],borderColor:'#eb6834',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.2},{label:'Rails L',data:[13,6,4,4,2,2],borderColor:'#eda100',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.2},{label:'PSU',data:[68,68,68,68,64,64],borderColor:'#1baf7a',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.2}]},options:{...base,plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('forecastChart'),{type:'bar',data:{labels:['Saver Board','CPU Tray','PSU','Switchboard','Rails','MCIO','Fans'],datasets:[{label:'30d',data:[57,23,21,11,10,4,3],backgroundColor:'#2a78d6',borderRadius:3,borderSkipped:'bottom'},{label:'60d',data:[114,46,43,21,21,9,6],backgroundColor:'#1baf7a',borderRadius:3,borderSkipped:'bottom'},{label:'90d',data:[172,70,64,32,31,13,10],backgroundColor:'#eb6834',borderRadius:3,borderSkipped:'bottom'}]},options:{...base,plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:10},maxRotation:30},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('gapChart'),{type:'bar',data:{labels:['Saver Board','CPU Tray','PSU','Switchboard','Rails','MCIO','Fans'],datasets:[{label:'Current stock',data:[109,21,64,41,4,0,0],backgroundColor:'#2a78d6',borderRadius:3},{label:'30-day demand',data:[57,23,21,11,10,4,3],backgroundColor:'rgba(235,104,52,0.5)',borderRadius:3,borderColor:'#eb6834',borderWidth:1.5}]},options:{...base,indexAxis:'y',plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false}}}}});
+
+new Chart(document.getElementById('shiftChart'),{type:'bar',data:{labels:['1st shift','2nd shift','3rd shift','Cross-shift'],datasets:[{data:[295,12,15,9],backgroundColor:['#2a78d6','#1baf7a','#eb6834','#888780'],borderRadius:4,borderSkipped:'bottom'}]},options:{...base,scales:{x:{ticks:{color:tc,font:{size:11},maxRotation:0},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('shiftPartsChart'),{type:'bar',data:{labels:['Saver Board','CPU Tray','PSU','Rails','Switchboard'],datasets:[{label:'1st',data:[97,32,46,18,14],backgroundColor:'#2a78d6',borderRadius:3},{label:'2nd',data:[0,3,2,0,2],backgroundColor:'#1baf7a',borderRadius:3},{label:'3rd',data:[5,1,0,2,3],backgroundColor:'#eb6834',borderRadius:3}]},options:{...base,plugins:{legend:{display:true,labels:{font:{size:11},color:tc,boxWidth:10,boxHeight:10}}},scales:{x:{ticks:{color:tc,font:{size:10},maxRotation:20},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('extModelChart'),{type:'bar',data:{labels:['Saver Board','CPU Tray','PSU','Switchboard','Chassis','Firmware','MCIO','SB Jig'],datasets:[{data:[48,32,29,27,21,18,7,6],backgroundColor:'#2a78d6',borderRadius:4,borderSkipped:'bottom'}]},options:{...base,scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:40,autoSkip:false},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+
+new Chart(document.getElementById('sixuModelChart'),{type:'bar',data:{labels:['Saver Board','SB Jig','Rails','CPU Tray','Chassis','PSU','BMC Ver.','Latches'],datasets:[{data:[82,23,22,21,13,11,5,4],backgroundColor:'#eb6834',borderRadius:4,borderSkipped:'bottom'}]},options:{...base,scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:40,autoSkip:false},grid:{display:false}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}});
+</script>
+</body>
+</html>
